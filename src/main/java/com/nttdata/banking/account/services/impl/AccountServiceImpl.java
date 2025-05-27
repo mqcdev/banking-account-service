@@ -1,6 +1,8 @@
 package com.nttdata.banking.account.services.impl;
 
 import com.nttdata.banking.account.clients.CustomerServiceClient;
+import com.nttdata.banking.account.dto.ClientDTO;
+import com.nttdata.banking.account.exceptions.BankingException;
 import com.nttdata.banking.account.models.BankAccount;
 import com.nttdata.banking.account.models.Transaction;
 import com.nttdata.banking.account.repositories.BankAccountRepository;
@@ -25,7 +27,8 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Mono<BankAccount> getAccountById(String id) {
-        return accountRepository.findById(id);
+        return accountRepository.findById(id)
+                .switchIfEmpty(Mono.error(new BankingException("ACCOUNT_NOT_FOUND", "No se encontró la cuenta con el ID proporcionado")));
     }
 
     @Override
@@ -37,19 +40,25 @@ public class AccountServiceImpl implements AccountService {
     public Mono<BankAccount> createSavingsAccount(BankAccount account) {
         account.setType(BankAccount.AccountType.SAVINGS);
 
-        return canClientHaveSavingsAccount(account.getClientId())
-                .flatMap(canHave -> {
-                    if (!canHave) {
-                        return Mono.error(new RuntimeException("El cliente no puede tener cuentas de ahorro"));
+        // Verificar que si el cliente tiene tipo PERSONAL
+        return customerServiceClient.getClientById(account.getClientId())
+                .flatMap(client -> {
+                    // Verificar que el perfil seleccionado esté entre los tipos del cliente
+                    if (!client.getCustomerType().contains(account.getProfileType())) {
+                        return Mono.error(new BankingException("INVALID_PROFILE", "El perfil seleccionado no corresponde a los tipos disponibles para este cliente"));
                     }
 
-                    return hasReachedAccountLimit(account.getClientId(), BankAccount.AccountType.SAVINGS);
+                    // Verificar que sea perfil personal para cuentas de ahorro
+                    if (account.getProfileType() != ClientDTO.ClientType.PERSONAL) {
+                        return Mono.error(new BankingException("PROFILE_NOT_ALLOWED", "Solo los perfiles personales pueden tener cuentas de ahorro"));
+                    }
+
+                    return hasReachedAccountLimit(account.getClientId(), BankAccount.AccountType.SAVINGS, ClientDTO.ClientType.PERSONAL);
                 })
                 .flatMap(hasReached -> {
                     if (hasReached) {
-                        return Mono.error(new RuntimeException("El cliente ya tiene una cuenta de ahorro"));
+                        return Mono.error(new BankingException("ACCOUNT_LIMIT_REACHED", "El cliente ya tiene una cuenta de ahorro"));
                     }
-
                     return initializeAndSaveAccount(account);
                 });
     }
@@ -58,24 +67,25 @@ public class AccountServiceImpl implements AccountService {
     public Mono<BankAccount> createCheckingAccount(BankAccount account) {
         account.setType(BankAccount.AccountType.CHECKING);
 
-        return canClientHaveCheckingAccount(account.getClientId())
-                .flatMap(canHave -> {
-                    if (!canHave) {
-                        return Mono.error(new RuntimeException("El cliente no puede tener cuentas corrientes"));
+        return customerServiceClient.getClientById(account.getClientId())
+                .flatMap(client -> {
+                    // Verificar que el perfil seleccionado esté entre los tipos del cliente
+                    if (!client.getCustomerType().contains(account.getProfileType())) {
+                        return Mono.error(new BankingException("INVALID_PROFILE", "El perfil seleccionado no corresponde a los tipos disponibles para este cliente"));
                     }
 
-                    return customerServiceClient.getClientById(account.getClientId());
-                })
-                .flatMap(client -> {
-                    if (!client.canHaveMultipleCheckingAccounts()) {
-                        return hasReachedAccountLimit(account.getClientId(), BankAccount.AccountType.CHECKING)
+                    // Si es perfil personal, verificar límite de cuentas corrientes
+                    if (account.getProfileType() == ClientDTO.ClientType.PERSONAL) {
+                        return hasReachedAccountLimit(account.getClientId(), BankAccount.AccountType.CHECKING, ClientDTO.ClientType.PERSONAL)
                                 .flatMap(hasReached -> {
                                     if (hasReached) {
-                                        return Mono.error(new RuntimeException("El cliente personal solo puede tener una cuenta corriente"));
+                                        return Mono.error(new BankingException("ACCOUNT_LIMIT_REACHED", "El cliente personal solo puede tener una cuenta corriente"));
                                     }
                                     return Mono.just(true);
                                 });
                     }
+
+                    // Para perfil empresarial, puede tener múltiples cuentas corrientes
                     return Mono.just(true);
                 })
                 .flatMap(ignored -> initializeAndSaveAccount(account));
@@ -85,19 +95,24 @@ public class AccountServiceImpl implements AccountService {
     public Mono<BankAccount> createFixedTermAccount(BankAccount account) {
         account.setType(BankAccount.AccountType.FIXED_TERM);
 
-        return canClientHaveFixedTermAccount(account.getClientId())
-                .flatMap(canHave -> {
-                    if (!canHave) {
-                        return Mono.error(new RuntimeException("El cliente no puede tener cuentas a plazo fijo"));
+        return customerServiceClient.getClientById(account.getClientId())
+                .flatMap(client -> {
+                    // Verificar que el perfil seleccionado esté entre los tipos del cliente
+                    if (!client.getCustomerType().contains(account.getProfileType())) {
+                        return Mono.error(new BankingException("INVALID_PROFILE", "El perfil seleccionado no corresponde a los tipos disponibles para este cliente"));
                     }
 
-                    return hasReachedAccountLimit(account.getClientId(), BankAccount.AccountType.FIXED_TERM);
+                    // Solo perfiles personales pueden tener cuenta a plazo fijo
+                    if (account.getProfileType() != ClientDTO.ClientType.PERSONAL) {
+                        return Mono.error(new BankingException("PROFILE_NOT_ALLOWED", "Solo los perfiles personales pueden tener cuentas a plazo fijo"));
+                    }
+
+                    return hasReachedAccountLimit(account.getClientId(), BankAccount.AccountType.FIXED_TERM, ClientDTO.ClientType.PERSONAL);
                 })
                 .flatMap(hasReached -> {
                     if (hasReached) {
-                        return Mono.error(new RuntimeException("El cliente ya tiene una cuenta a plazo fijo"));
+                        return Mono.error(new BankingException("ACCOUNT_LIMIT_REACHED", "El cliente ya tiene una cuenta a plazo fijo"));
                     }
-
                     return initializeAndSaveAccount(account);
                 });
     }
@@ -137,7 +152,12 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Mono<Boolean> validateAccountOwnership(String accountId, String clientId) {
         return getAccountById(accountId)
-                .map(account -> account.getClientId().equals(clientId));
+                .map(account -> {
+                    if (!account.getClientId().equals(clientId)) {
+                        throw new BankingException("UNAUTHORIZED", "El cliente no es propietario de esta cuenta");
+                    }
+                    return true;
+                });
     }
 
     @Override
@@ -164,7 +184,13 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Mono<Boolean> validateTransactionAllowed(String accountId, LocalDate date) {
         return getAccountById(accountId)
-                .map(account -> account.validateMovementDate(date));
+                .map(account -> {
+                    if (!account.validateMovementDate(date)) {
+                        throw new BankingException("INVALID_TRANSACTION_DATE",
+                                "La transacción no está permitida en esta fecha para el tipo de cuenta");
+                    }
+                    return true;
+                });
     }
 
     @Override
@@ -191,17 +217,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Mono<Boolean> hasReachedAccountLimit(String clientId, BankAccount.AccountType accountType) {
-        return customerServiceClient.getClientById(clientId)
-                .flatMap(client -> {
-                    if (client.isBusiness() && client.canHaveMultipleCheckingAccounts() &&
-                            accountType == BankAccount.AccountType.CHECKING) {
-                        return Mono.just(false); // Los clientes empresariales pueden tener múltiples cuentas corrientes
-                    }
+    public Mono<Boolean> hasReachedAccountLimit(String clientId, BankAccount.AccountType accountType, ClientDTO.ClientType profileType) {
+        if (profileType == ClientDTO.ClientType.BUSINESS && accountType == BankAccount.AccountType.CHECKING) {
+            return Mono.just(false); // Los perfiles empresariales pueden tener múltiples cuentas corrientes
+        }
 
-                    // Para otros tipos de cuenta o clientes personales, verificar límites
-                    return accountRepository.countByClientIdAndType(clientId, accountType)
-                            .map(count -> count > 0);
-                });
+        // Para perfiles personales, verificar límites
+        return accountRepository.countByClientIdAndTypeAndProfileType(clientId, accountType, profileType)
+                .map(count -> count > 0);
     }
 }

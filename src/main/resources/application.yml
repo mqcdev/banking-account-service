@@ -1,10 +1,8 @@
 spring:
     application:
         name: banking-account-service
-    data:
-        mongodb:
-            uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:account2025}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:bankingdb}?authSource=admin
-            database: bankingdb
-            auto-index-creation: true
-server:
-    port: 9004
+    config:
+        import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:9002}
+services:
+    customer:
+        service-name: banking-customer-service

@@ -1,5 +1,6 @@
 package com.nttdata.banking.account.services;
 
+import com.nttdata.banking.account.dto.ClientDTO;
 import com.nttdata.banking.account.models.BankAccount;
 import com.nttdata.banking.account.models.Transaction;
 import reactor.core.publisher.Flux;
@@ -26,5 +27,5 @@ public interface AccountService {
     Mono<Boolean> canClientHaveSavingsAccount(String clientId);
     Mono<Boolean> canClientHaveFixedTermAccount(String clientId);
     Mono<Boolean> canClientHaveCheckingAccount(String clientId);
-    Mono<Boolean> hasReachedAccountLimit(String clientId, BankAccount.AccountType accountType);
+    Mono<Boolean> hasReachedAccountLimit(String clientId, BankAccount.AccountType accountType, ClientDTO.ClientType profileType);
 }

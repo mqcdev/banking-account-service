@@ -49,10 +49,10 @@ public class AccountController {
     @GetMapping("/has-reached-limit/{clientId}")
     public Mono<Boolean> hasReachedAccountLimit(
             @PathVariable String clientId,
-            @RequestParam BankAccount.AccountType accountType) {
-        return accountService.hasReachedAccountLimit(clientId, accountType);
+            @RequestParam BankAccount.AccountType accountType,
+            @RequestParam ClientDTO.ClientType profileType) {
+        return accountService.hasReachedAccountLimit(clientId, accountType, profileType);
     }
-
     // Endpoints existentes
     @GetMapping("/{id}")
     public Mono<BankAccount> getAccount(@PathVariable String id) {

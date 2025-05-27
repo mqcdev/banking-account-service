@@ -1,5 +1,6 @@
 package com.nttdata.banking.account.models;
 
+import com.nttdata.banking.account.dto.ClientDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,19 +30,16 @@ public class BankAccount {
     private LocalDateTime updatedAt;
     private Boolean active;
 
-    // Campo para distinguir el tipo de cuenta
-    private AccountType type;
+    // Nuevo campo para especificar el perfil utilizado
+    private ClientDTO.ClientType profileType;
 
-    // Campos específicos para cuenta de ahorro
+    // Campos existentes
+    private AccountType type;
     private Integer monthlyTransactions;
     private Integer maxMonthlyTransactions;
-
-    // Campos específicos para cuenta corriente
     private BigDecimal maintenanceFee;
     private List<String> accountHolders = new ArrayList<>();
     private List<String> authorizedSigners = new ArrayList<>();
-
-    // Campos específicos para cuenta a plazo fijo
     private Integer movementDay;
     private LocalDate maturityDate;
     private BigDecimal interestRate;

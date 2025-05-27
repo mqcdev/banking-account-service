@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,16 +15,19 @@ import java.util.List;
 @AllArgsConstructor
 public class ClientDTO {
     private String id;
-    private String name;
+    private List<ClientType> customerType = new ArrayList<>();
+    private String firstName;
+    private String lastName;
     private String documentType;
     private String documentNumber;
+    private String companyName;
+    private String ruc;
+    private String phoneNumber;
     private String email;
-    private String phone;
     private String address;
-
-    // Cada cliente tiene un conjunto de tipos (pueden ser varios)
-    @Builder.Default
-    private List<ClientType> types = new ArrayList<>();
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Boolean active;
 
     // Tipos de cliente disponibles
     public enum ClientType {
@@ -32,11 +36,11 @@ public class ClientDTO {
 
     // Métodos para verificar el tipo de cliente
     public boolean isPersonal() {
-        return types.contains(ClientType.PERSONAL);
+        return customerType != null && customerType.contains(ClientType.PERSONAL);
     }
 
     public boolean isBusiness() {
-        return types.contains(ClientType.BUSINESS);
+        return customerType != null && customerType.contains(ClientType.BUSINESS);
     }
 
     // Métodos específicos de reglas de negocio
@@ -54,5 +58,10 @@ public class ClientDTO {
 
     public boolean canHavePersonalCheckingAccount() {
         return isPersonal();
+    }
+
+    // Para compatibilidad con el código existente
+    public List<ClientType> getTypes() {
+        return customerType;
     }
 }
