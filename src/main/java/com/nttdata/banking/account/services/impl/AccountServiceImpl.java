@@ -6,7 +6,6 @@ import com.nttdata.banking.account.exceptions.BankingException;
 import com.nttdata.banking.account.models.BankAccount;
 import com.nttdata.banking.account.models.Transaction;
 import com.nttdata.banking.account.repositories.BankAccountRepository;
-import com.nttdata.banking.account.repositories.TransactionRepository;
 import com.nttdata.banking.account.services.AccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,7 +13,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -22,13 +20,17 @@ import java.time.LocalDateTime;
 public class AccountServiceImpl implements AccountService {
 
     private final BankAccountRepository accountRepository;
-    private final TransactionRepository transactionRepository;
     private final CustomerServiceClient customerServiceClient;
 
     @Override
     public Mono<BankAccount> getAccountById(String id) {
         return accountRepository.findById(id)
                 .switchIfEmpty(Mono.error(new BankingException("ACCOUNT_NOT_FOUND", "No se encontró la cuenta con el ID proporcionado")));
+    }
+    @Override
+    public Mono<BankAccount> getAccountByAccountNumber(String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber)
+                .switchIfEmpty(Mono.error(new BankingException("ACCOUNT_NOT_FOUND", "No se encontró el numero de cuenta con el numero proporcionado")));
     }
 
     @Override
@@ -181,22 +183,6 @@ public class AccountServiceImpl implements AccountService {
                 });
     }
 
-    @Override
-    public Mono<Boolean> validateTransactionAllowed(String accountId, LocalDate date) {
-        return getAccountById(accountId)
-                .map(account -> {
-                    if (!account.validateMovementDate(date)) {
-                        throw new BankingException("INVALID_TRANSACTION_DATE",
-                                "La transacción no está permitida en esta fecha para el tipo de cuenta");
-                    }
-                    return true;
-                });
-    }
-
-    @Override
-    public Flux<Transaction> getAccountTransactions(String accountId) {
-        return transactionRepository.findBySourceAccountIdOrDestinationAccountId(accountId, accountId);
-    }
 
     @Override
     public Mono<Boolean> canClientHaveSavingsAccount(String clientId) {

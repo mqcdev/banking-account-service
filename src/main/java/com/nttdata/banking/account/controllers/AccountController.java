@@ -2,10 +2,8 @@ package com.nttdata.banking.account.controllers;
 
 import com.nttdata.banking.account.clients.CustomerServiceClient;
 import com.nttdata.banking.account.models.BankAccount;
-import com.nttdata.banking.account.models.Transaction;
 import com.nttdata.banking.account.dto.ClientDTO;
 import com.nttdata.banking.account.services.AccountService;
-import com.nttdata.banking.account.services.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +11,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/accounts")
@@ -21,7 +18,6 @@ import java.time.LocalDate;
 public class AccountController {
 
     private final AccountService accountService;
-    private final TransactionService transactionService;
     private final CustomerServiceClient customerServiceClient;
 
     // Endpoint para consultar información del cliente
@@ -63,6 +59,10 @@ public class AccountController {
     public Flux<BankAccount> getAccountsByClient(@PathVariable String clientId) {
         return accountService.getAccountsByClientId(clientId);
     }
+    @GetMapping("/client/filter/{accountNumber}")
+    public Mono<BankAccount> getAccountsByAccountNumber(@PathVariable String accountNumber) {
+        return accountService.getAccountByAccountNumber(accountNumber);
+    }
 
     @PostMapping("/savings")
     @ResponseStatus(HttpStatus.CREATED)
@@ -98,11 +98,6 @@ public class AccountController {
         return accountService.getBalance(id);
     }
 
-    @GetMapping("/{id}/transactions")
-    public Flux<Transaction> getAccountTransactions(@PathVariable String id) {
-        return accountService.getAccountTransactions(id);
-    }
-
     @GetMapping("/{id}/validate-movement")
     public Mono<Boolean> validateMovement(
             @PathVariable String id,
@@ -111,41 +106,4 @@ public class AccountController {
         return accountService.validateAccountMovement(id, amount, movementType);
     }
 
-    @GetMapping("/{id}/validate-transaction-date")
-    public Mono<Boolean> validateTransactionDate(
-            @PathVariable String id,
-            @RequestParam(required = false) String dateStr) {
-        LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
-        return accountService.validateTransactionAllowed(id, date);
-    }
-    @PostMapping("/{id}/deposit")
-    public Mono<Transaction> deposit(
-            @PathVariable String id,
-            @RequestParam BigDecimal amount,
-            @RequestParam(required = false) String description) {
-        return transactionService.createTransaction(
-                id, null, Transaction.TransactionType.DEPOSIT, amount,
-                description != null ? description : "Depósito");
-    }
-
-    @PostMapping("/{id}/withdrawal")
-    public Mono<Transaction> withdrawal(
-            @PathVariable String id,
-            @RequestParam BigDecimal amount,
-            @RequestParam(required = false) String description) {
-        return transactionService.createTransaction(
-                id, null, Transaction.TransactionType.WITHDRAWAL, amount,
-                description != null ? description : "Retiro");
-    }
-
-    @PostMapping("/{sourceId}/transfer/{destinationId}")
-    public Mono<Transaction> transfer(
-            @PathVariable String sourceId,
-            @PathVariable String destinationId,
-            @RequestParam BigDecimal amount,
-            @RequestParam(required = false) String description) {
-        return transactionService.createTransaction(
-                sourceId, destinationId, Transaction.TransactionType.TRANSFER, amount,
-                description != null ? description : "Transferencia");
-    }
 }

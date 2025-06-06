@@ -11,6 +11,7 @@ import java.time.LocalDate;
 
 public interface AccountService {
     Mono<BankAccount> getAccountById(String id);
+    Mono<BankAccount> getAccountByAccountNumber(String accountNumber);
     Flux<BankAccount> getAccountsByClientId(String clientId);
     Mono<BankAccount> createSavingsAccount(BankAccount account);
     Mono<BankAccount> createCheckingAccount(BankAccount account);
@@ -20,9 +21,6 @@ public interface AccountService {
     Mono<BigDecimal> getBalance(String accountId);
     Mono<Boolean> validateAccountOwnership(String accountId, String clientId);
     Mono<Boolean> validateAccountMovement(String accountId, BigDecimal amount, String movementType);
-    Mono<Boolean> validateTransactionAllowed(String accountId, LocalDate date);
-    Flux<Transaction> getAccountTransactions(String accountId);
-
     // Métodos nuevos para validar reglas de negocio relacionadas con clientes
     Mono<Boolean> canClientHaveSavingsAccount(String clientId);
     Mono<Boolean> canClientHaveFixedTermAccount(String clientId);
