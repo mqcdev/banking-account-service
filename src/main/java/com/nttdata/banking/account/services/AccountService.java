@@ -1,6 +1,7 @@
 package com.nttdata.banking.account.services;
 
 import com.nttdata.banking.account.dto.ClientDTO;
+import com.nttdata.banking.account.dto.CommissionDTO;
 import com.nttdata.banking.account.models.BankAccount;
 import com.nttdata.banking.account.models.Transaction;
 import reactor.core.publisher.Flux;
@@ -8,6 +9,8 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.Map;
 
 public interface AccountService {
     Mono<BankAccount> getAccountById(String id);
@@ -26,4 +29,13 @@ public interface AccountService {
     Mono<Boolean> canClientHaveFixedTermAccount(String clientId);
     Mono<Boolean> canClientHaveCheckingAccount(String clientId);
     Mono<Boolean> hasReachedAccountLimit(String clientId, BankAccount.AccountType accountType, ClientDTO.ClientType profileType);
+
+    //  para Proyecto II
+    Mono<BankAccount> createVipAccount(BankAccount account);
+    Mono<BankAccount> createPymeAccount(BankAccount account);
+    Mono<Boolean> validateMinimumOpeningAmount(BankAccount account);
+    Mono<Boolean> validateCreditCardRequirement(String clientId);
+    Mono<BigDecimal> calculateAverageDailyBalance(String accountId, YearMonth month);
+    Flux<CommissionDTO> getCommissionsByPeriod(String accountId, LocalDate startDate, LocalDate endDate);
+    Mono<Map<String, BigDecimal>> getAverageDailyBalanceSummary(String clientId, YearMonth month);
 }
