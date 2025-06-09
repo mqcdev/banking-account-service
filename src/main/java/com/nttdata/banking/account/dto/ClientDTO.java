@@ -31,7 +31,7 @@ public class ClientDTO {
 
     // Tipos de cliente disponibles
     public enum ClientType {
-        PERSONAL, BUSINESS
+        PERSONAL, BUSINESS, VIP, PYME
     }
 
     // Métodos para verificar el tipo de cliente
@@ -59,7 +59,13 @@ public class ClientDTO {
     public boolean canHavePersonalCheckingAccount() {
         return isPersonal();
     }
+    public boolean isVip() {
+        return customerType != null && customerType.contains(ClientType.VIP);
+    }
 
+    public boolean isPyme() {
+        return customerType != null && customerType.contains(ClientType.PYME);
+    }
     // Para compatibilidad con el código existente
     public List<ClientType> getTypes() {
         return customerType;
