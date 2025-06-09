@@ -44,6 +44,11 @@ public class BankAccount {
     private LocalDate maturityDate;
     private BigDecimal interestRate;
 
+    // para proyecto 2 agrege
+    private BigDecimal minimumOpeningAmount;
+    private Integer freeTransactionsLimit;
+    private BigDecimal transactionCommission;
+    private BigDecimal minimumDailyBalance; // Para cuentas VIP
     // Tipos de cuenta
     public enum AccountType {
         SAVINGS, CHECKING, FIXED_TERM
