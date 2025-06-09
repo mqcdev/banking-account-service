@@ -1,16 +1,21 @@
 package com.nttdata.banking.account.controllers;
 
 import com.nttdata.banking.account.clients.CustomerServiceClient;
+import com.nttdata.banking.account.dto.CommissionDTO;
 import com.nttdata.banking.account.models.BankAccount;
 import com.nttdata.banking.account.dto.ClientDTO;
 import com.nttdata.banking.account.services.AccountService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/accounts")
@@ -19,6 +24,45 @@ public class AccountController {
 
     private final AccountService accountService;
     private final CustomerServiceClient customerServiceClient;
+
+    // nuevos del proyecto 2
+    @PostMapping("/vip")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<BankAccount> createVipAccount(@RequestBody BankAccount account) {
+        return accountService.createVipAccount(account);
+    }
+
+    @PostMapping("/pyme")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<BankAccount> createPymeAccount(@RequestBody BankAccount account) {
+        return accountService.createPymeAccount(account);
+    }
+
+    @GetMapping("/{accountId}/average-balance")
+    public Mono<BigDecimal> getAverageBalance(
+            @PathVariable String accountId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month) {
+        YearMonth yearMonth = YearMonth.from(month);
+        return accountService.calculateAverageDailyBalance(accountId, yearMonth);
+    }
+
+    @GetMapping("/client/{clientId}/balance-summary")
+    public Mono<Map<String, BigDecimal>> getBalanceSummary(
+            @PathVariable String clientId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate month) {
+        YearMonth yearMonth = YearMonth.from(month);
+        return accountService.getAverageDailyBalanceSummary(clientId, yearMonth);
+    }
+
+    @GetMapping("/{accountId}/commissions")
+    public Flux<CommissionDTO> getCommissions(
+            @PathVariable String accountId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return accountService.getCommissionsByPeriod(accountId, startDate, endDate);
+    }
+
+    /////////
 
     // Endpoint para consultar información del cliente
     @GetMapping("/client-info/{clientId}")
