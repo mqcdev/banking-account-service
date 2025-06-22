@@ -6,7 +6,6 @@ import com.nttdata.banking.bankaccount.model.BankAccount;
 import com.nttdata.banking.bankaccount.model.Client;
 import com.nttdata.banking.bankaccount.model.Headline;
 import com.nttdata.banking.bankaccount.model.Movement;
-import com.nttdata.bootcamp.msbankaccount.model.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

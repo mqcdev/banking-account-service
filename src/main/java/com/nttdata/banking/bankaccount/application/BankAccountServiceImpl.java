@@ -7,8 +7,6 @@ import com.nttdata.banking.bankaccount.exception.ResourceNotFoundException;
 import com.nttdata.banking.bankaccount.infrastructure.*;
 import com.nttdata.banking.bankaccount.model.BankAccount;
 import com.nttdata.banking.bankaccount.model.Client;
-import com.nttdata.bootcamp.msbankaccount.infrastructure.*;
-import com.nttdata.bootcamp.msbankaccount.model.*;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
